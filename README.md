@@ -6,10 +6,10 @@ A native mod that adds a simple Scarab currency cheat to Star Fox Adventures run
 
 | Key | Action |
 | --- | --- |
-| 0 | Add 10 Scarabs |
+| + | Add 10 Scarabs |
 
-- Use the number-row 0 key. The numpad 0 key is not used.
-- Each press adds 10 Scarabs once. Holding 0 does not keep adding Scarabs; release it and press it again to add another 10.
+- The + key works on both the main keyboard and the numeric keypad. On keyboards where + shares the = key, the main key works with or without Shift.
+- Each press adds 10 Scarabs once. Holding + does not keep adding Scarabs; release it and press it again to add another 10. Pressing the other + key while one is held does not add more.
 - The key works during gameplay while playing as Fox and the game window is focused. It does nothing on the title screen, the save select, during loading, while flying the Arwing or while playing as Krystal.
 - There is no on-screen display. Every addition is written to the Foxhollow log, for example `[Scarab Cheat] Added 10 Scarabs (20 / 50)`.
 
@@ -20,7 +20,7 @@ A native mod that adds a simple Scarab currency cheat to Star Fox Adventures run
   - The bag is never reset or downgraded.
   - Capacity never exceeds 200. With the 200 bag, your total stops at 200, as it does in the normal game.
 
-The mod only changes the game when you press 0. Without a key press, gameplay is unchanged.
+The mod only changes the game when you press +. Without a key press, gameplay is unchanged.
 
 ## Installation
 
