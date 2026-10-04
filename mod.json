@@ -1,7 +1,7 @@
 {
   "id": "com.saulob.cheats-scarab",
   "name": "Cheats - Scarab",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "author": "saulob",
   "description": "Scarab currency cheat for Star Fox Adventures. Press + on the main keyboard or numpad to add 10 Scarabs, automatically upgrading the Scarab Bag capacity when needed",
   "compatibility": {

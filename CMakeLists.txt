@@ -1,24 +1,76 @@
 cmake_minimum_required(VERSION 3.25)
-project(scarab_cheat VERSION 1.0.1 LANGUAGES C)
+project(scarab_cheat VERSION 1.1.0 LANGUAGES C)
 
-if(NOT WIN32 OR NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-  message(FATAL_ERROR "Scarab Cheat currently supports Windows x64 only")
+include(CheckCSourceCompiles)
+
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+  message(FATAL_ERROR "Scarab Cheat supports 64-bit targets only")
+endif()
+
+if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES ";")
+  message(FATAL_ERROR "Build one macOS architecture at a time (CMAKE_OSX_ARCHITECTURES=arm64 or x86_64): "
+                      "Foxhollow loads lib/macos-arm64 and lib/macos-x86_64 separately")
+endif()
+
+# Ask the compiler which CPU it targets; CMAKE_SYSTEM_PROCESSOR reports the host,
+# which is wrong for CMAKE_OSX_ARCHITECTURES builds. The results are not cached, so
+# changing the architecture of an existing build directory is detected.
+unset(SCARAB_CHEAT_TARGET_X86_64 CACHE)
+unset(SCARAB_CHEAT_TARGET_ARM64 CACHE)
+check_c_source_compiles("
+#if !defined(__x86_64__) && !defined(_M_X64)
+#error not x86_64
+#endif
+int main(void) { return 0; }" SCARAB_CHEAT_TARGET_X86_64)
+check_c_source_compiles("
+#if !defined(__aarch64__) && !defined(_M_ARM64)
+#error not arm64
+#endif
+int main(void) { return 0; }" SCARAB_CHEAT_TARGET_ARM64)
+
+# Directory names match platform_directory() in Foxhollow's port/src/foxhollow_mods.cpp.
+if(WIN32 AND SCARAB_CHEAT_TARGET_X86_64)
+  set(MOD_PLATFORM_DIR "windows-amd64")
+elseif(APPLE AND SCARAB_CHEAT_TARGET_ARM64)
+  set(MOD_PLATFORM_DIR "macos-arm64")
+elseif(APPLE AND SCARAB_CHEAT_TARGET_X86_64)
+  set(MOD_PLATFORM_DIR "macos-x86_64")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SCARAB_CHEAT_TARGET_ARM64)
+  set(MOD_PLATFORM_DIR "linux-arm64")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND SCARAB_CHEAT_TARGET_X86_64)
+  set(MOD_PLATFORM_DIR "linux-amd64")
+else()
+  message(FATAL_ERROR "Scarab Cheat supports Windows x64, Linux x86_64/arm64 and macOS x86_64/arm64; "
+                      "${CMAKE_SYSTEM_NAME} ${CMAKE_SYSTEM_PROCESSOR} is not supported yet")
 endif()
 
 add_library(scarab_cheat SHARED
   src/mod.c
   src/scarab_cheat.c)
 target_include_directories(scarab_cheat PRIVATE include)
-target_link_libraries(scarab_cheat PRIVATE user32)
 
-set(MOD_PLATFORM_DIR "windows-amd64")
-set(MOD_LIBRARY_NAME "mod.dll")
+# Windows reads the keyboard through Win32. Linux and macOS read it from
+# Foxhollow's own SDL3 runtime, looked up at load time, so no SDL is linked.
+# Foxhollow loads mod.dll on Windows and mod.so everywhere else, including macOS,
+# where CMake would otherwise name a shared library .dylib.
+if(WIN32)
+  target_sources(scarab_cheat PRIVATE src/platform_input_windows.c)
+  target_link_libraries(scarab_cheat PRIVATE user32)
+  set(MOD_LIBRARY_NAME "mod.dll")
+else()
+  target_sources(scarab_cheat PRIVATE src/platform_input_sdl.c)
+  target_link_libraries(scarab_cheat PRIVATE ${CMAKE_DL_LIBS})
+  set_target_properties(scarab_cheat PROPERTIES SUFFIX ".so")
+  set(MOD_LIBRARY_NAME "mod.so")
+endif()
 
+# Only the FH_MOD_EXPORT entry points are visible to the loader.
 set_target_properties(scarab_cheat PROPERTIES
   PREFIX ""
   OUTPUT_NAME "mod"
   C_STANDARD 11
-  C_STANDARD_REQUIRED ON)
+  C_STANDARD_REQUIRED ON
+  C_VISIBILITY_PRESET hidden)
 
 # The package folder is named after the manifest id, which is also how the
 # install and package scripts find it. Editing mod.json re-runs configure.
